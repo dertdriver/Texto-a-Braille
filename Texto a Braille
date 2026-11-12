@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Texto a Braille</title>
+<style>
+:root{--bg:#0b1020;--panel:#141c31;--panel2:#1b2740;--text:#edf3ff;--muted:#9eacc7;--accent:#8b9cff;--accent2:#55dfc1;--line:#2a3856}
+*{box-sizing:border-box}body{margin:0;min-height:100vh;background:radial-gradient(ellipse at top,#1b2a50 0%,#0b1020 55%);color:var(--text);font-family:Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;padding:36px 18px}
+.wrap{max-width:1050px;margin:auto}.hero{text-align:center;margin:10px auto 28px}.eyebrow{display:inline-block;padding:7px 12px;border:1px solid #43527b;border-radius:999px;color:#c3ceff;font-size:12px;letter-spacing:.12em;text-transform:uppercase}.hero h1{font-size:clamp(32px,5vw,52px);margin:16px 0 8px;letter-spacing:-.04em}.hero h1 span{color:var(--accent2)}.hero p{color:var(--muted);margin:0;font-size:16px}
+.panel{background:linear-gradient(145deg,rgba(25,36,61,.96),rgba(17,25,44,.96));border:1px solid var(--line);border-radius:22px;padding:22px;box-shadow:0 20px 60px #0005;margin-bottom:18px}
+.label-row{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px}.label-row label{font-weight:700}.counter{font-size:12px;color:var(--muted)}
+textarea{width:100%;min-height:145px;resize:vertical;background:#0c1426;border:1px solid #344363;border-radius:14px;color:var(--text);padding:16px;font:16px/1.6 inherit;outline:none}textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px #8b9cff22}
+.actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}.btn{border:0;border-radius:12px;padding:11px 16px;font-weight:700;cursor:pointer;transition:.2s;font-size:14px}.primary{background:linear-gradient(135deg,#8b9cff,#6f80ed);color:#0b1020}.secondary{background:#263653;color:var(--text);border:1px solid #3b4d70}.btn:hover{transform:translateY(-1px);filter:brightness(1.08)}
+.section-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:15px}.section-head h2{font-size:18px;margin:0}.hint{font-size:12px;color:var(--muted)}
+.braille-output{font-family:"Segoe UI Symbol","Apple Symbols",sans-serif;font-size:clamp(25px,4vw,38px);line-height:1.8;letter-spacing:.08em;overflow-wrap:anywhere;min-height:55px;color:#fff;background:#0c1426;border:1px solid #2d3c5b;border-radius:14px;padding:14px 16px}
+.visual-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(86px,1fr));gap:10px}.cell-card{background:#0c1426;border:1px solid #2a3a59;border-radius:13px;padding:10px 8px;text-align:center;min-width:0}.original{font-size:12px;color:var(--muted);height:18px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.braille-char{font-family:"Segoe UI Symbol","Apple Symbols",sans-serif;font-size:30px;margin:1px 0 7px}.dots{display:grid;grid-template-columns:repeat(2,12px);grid-template-rows:repeat(3,12px);gap:5px;justify-content:center;margin:0 auto 7px}.dot{width:12px;height:12px;border-radius:50%;background:#293752;border:1px solid #405273}.dot.on{background:var(--accent2);border-color:var(--accent2);box-shadow:0 0 9px #55dfc155}.code{font-size:10px;color:#9eacc7}
+.note{color:var(--muted);font-size:12px;line-height:1.6;margin:14px 2px 0}.empty{color:var(--muted);font-size:14px;padding:15px 2px}.footer{text-align:center;color:#71809d;font-size:12px;margin:22px 0 5px}
+@media(max-width:600px){body{padding:22px 12px}.panel{padding:16px;border-radius:17px}.section-head{align-items:flex-start;flex-direction:column}.visual-grid{grid-template-columns:repeat(auto-fill,minmax(76px,1fr))}}
+</style>
+</head>
+<body>
+<main class="wrap">
+  <header class="hero">
+    <div class="eyebrow">Herramienta de escritura accesible</div>
+    <h1>Texto a <span>Braille</span></h1>
+    <p>Escribí un mensaje y mirá cómo se representa con puntos en relieve.</p>
+  </header>
+
+  <section class="panel">
+    <div class="label-row"><label for="inputText">Tu texto</label><span class="counter" id="counter">0 caracteres</span></div>
+    <textarea id="inputText" placeholder="Escribí aquí... Por ejemplo: Hola mundo 123"></textarea>
+    <div class="actions">
+      <button class="btn primary" id="convertBtn">Convertir a Braille</button>
+      <button class="btn secondary" id="copyBtn">Copiar Braille</button>
+      <button class="btn secondary" id="clearBtn">Limpiar</button>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="section-head"><h2>Resultado en Braille</h2><span class="hint">Caracteres Unicode Braille</span></div>
+    <div class="braille-output" id="brailleOutput" aria-live="polite">⠞⠥ ⠞⠑⠭⠞⠕ ⠁⠟⠥⠊</div>
+    <p class="note">Los números se indican con el prefijo numérico ⠼. Las mayúsculas llevan el indicador ⠠. La conversión usa una tabla básica de Braille español; algunas convenciones editoriales pueden variar.</p>
+  </section>
+
+  <section class="panel">
+    <div class="section-head"><h2>Vista de cada celda</h2><span class="hint">Puntos 1–2–3 / 4–5–6</span></div>
+    <div class="visual-grid" id="visualGrid"><div class="empty">Las celdas aparecerán aquí.</div></div>
+  </section>
+  <div class="footer">Hecho para explorar el sistema Braille · 6 puntos por celda</div>
+</main>
+<script>
+const map = {
+'a':'⠁','b':'⠃','c':'⠉','d':'⠙','e':'⠑','f':'⠋','g':'⠛','h':'⠓','i':'⠊','j':'⠚',
+'k':'⠅','l':'⠇','m':'⠍','n':'⠝','o':'⠕','p':'⠏','q':'⠟','r':'⠗','s':'⠎','t':'⠞',
+'u':'⠥','v':'⠧','w':'⠺','x':'⠭','y':'⠽','z':'⠵',
+'á':'⠷','é':'⠮','í':'⠌','ó':'⠬','ú':'⠾','ü':'⠳','ñ':'⠻',
+',':'⠂',';':'⠆',':':'⠒','.':'⠲','?':'⠦','!':'⠖','¿':'⠢','¡':'⠖',
+'-':'⠤','—':'⠤','(':'⠣',')':'⠜','“':'⠦','”':'⠴','"':'⠦',"'":'⠄','/':'⠌'
+};
+const digitMap = {'1':'a','2':'b','3':'c','4':'d','5':'e','6':'f','7':'g','8':'h','9':'i','0':'j'};
+const dotPatterns = {
+'⠁':[1],'⠃':[1,2],'⠉':[1,4],'⠙':[1,4,5],'⠑':[1,5],'⠋':[1,2,4],'⠛':[1,2,4,5],'⠓':[1,2,5],'⠊':[2,4],'⠚':[2,4,5],
+'⠅':[1,3],'⠇':[1,2,3],'⠍':[1,3,4],'⠝':[1,3,4,5],'⠕':[1,3,5],'⠏':[1,2,3,4],'⠟':[1,2,3,4,5],'⠗':[1,2,3,5],'⠎':[2,3,4],'⠞':[2,3,4,5],
+'⠥':[1,3,6],'⠧':[1,2,3,6],'⠺':[2,4,5,6],'⠭':[1,3,4,6],'⠽':[1,3,4,5,6],'⠵':[1,3,5,6],
+'⠷':[1,2,3,5,6],'⠮':[2,3,4,6],'⠌':[3,4],'⠬':[3,4,6],'⠾':[2,3,4,5,6],'⠳':[1,2,5,6],'⠻':[1,2,4,5,6],
+'⠂':[2],'⠆':[2,3],'⠒':[2,5],'⠲':[2,5,6],'⠦':[2,3,6],'⠖':[2,3,5],'⠢':[2,6],'⠤':[3,6],'⠣':[1,2,6],'⠜':[3,4,5,6],'⠴':[3,5,6],'⠄':[3],'⠼':[3,4,5,6],'⠠':[6]
+};
+function convert(text){
+  const out=[]; let numberMode=false;
+  for(let i=0;i<text.length;i++){
+    const raw=text[i], ch=raw.toLocaleLowerCase('es');
+    if(/\s/.test(raw)){out.push({source:raw,braille:' ',type:'space'});numberMode=false;continue;}
+    if(/[0-9]/.test(raw)){
+      if(!numberMode) out.push({source:'Indicador numérico',braille:'⠼',type:'indicator'});
+      out.push({source:raw,braille:map[digitMap[raw]],type:'normal'});numberMode=true;continue;
+    }
+    numberMode=false;
+    if(/[A-ZÁÉÍÓÚÜÑ]/.test(raw)) out.push({source:'Mayúscula '+raw,braille:'⠠',type:'indicator'});
+    const b=map[ch];
+    if(b) out.push({source:raw,braille:b,type:'normal'});
+    else out.push({source:raw,braille:'⠿',type:'unknown'});
+  }
+  return out;
+}
+const input=document.getElementById('inputText'), output=document.getElementById('brailleOutput'), grid=document.getElementById('visualGrid'), counter=document.getElementById('counter');
+function render(){
+ const text=input.value; counter.textContent=text.length+' caracteres';
+ const items=convert(text); output.textContent=items.map(x=>x.braille).join('') || 'El resultado aparecerá aquí…';
+ grid.innerHTML='';
+ if(!text){grid.innerHTML='<div class="empty">Escribí algo arriba para ver las celdas.</div>';return;}
+ items.forEach(item=>{
+   if(item.type==='space'){const spacer=document.createElement('div');spacer.className='empty';spacer.textContent='espacio';grid.appendChild(spacer);return;}
+   const card=document.createElement('div');card.className='cell-card';
+   const original=document.createElement('div');original.className='original';original.textContent=item.source;
+   const symbol=document.createElement('div');symbol.className='braille-char';symbol.textContent=item.braille;
+   const dots=document.createElement('div');dots.className='dots';
+   const active=dotPatterns[item.braille]||[];
+   for(let n=1;n<=6;n++){const dot=document.createElement('span');dot.className='dot'+(active.includes(n)?' on':'');dots.appendChild(dot);}
+   const code=document.createElement('div');code.className='code';code.textContent=item.type==='unknown'?'sin equivalencia':(active.length?'Puntos '+active.join(', '):'indicador');
+   card.append(original,symbol,dots,code);grid.appendChild(card);
+ });
+}
+input.addEventListener('input',render);
+document.getElementById('convertBtn').addEventListener('click',render);
+document.getElementById('clearBtn').addEventListener('click',()=>{input.value='';render();input.focus();});
+document.getElementById('copyBtn').addEventListener('click',async()=>{
+ const value=convert(input.value).map(x=>x.braille).join('');
+ if(!input.value)return;
+ const btn=document.getElementById('copyBtn');
+ try{await navigator.clipboard.writeText(value);btn.textContent='¡Copiado!';}
+ catch(e){output.focus();btn.textContent='No se pudo copiar';}
+ setTimeout(()=>btn.textContent='Copiar Braille',1600);
+});
+render();
+</script>
+</body>
+</html>
